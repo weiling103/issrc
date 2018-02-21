@@ -4824,13 +4824,15 @@ DiskSliceSize=1457664
 <keyword value="x64" />
 <keyword value="IA-64" />
 <keyword value="Itanium" />
-<setupvalid>One or more of the following, separated by spaces: <br/><tt>x86</tt> <br/><tt>x64</tt> <br/><tt>ia64</tt></setupvalid>
+<keyword value="ARM64" />
+<setupvalid>One or more of the following, separated by spaces: <br/><tt>x86</tt> <br/><tt>x64</tt> <br/><tt>ia64</tt> <br/><tt>arm64</tt></setupvalid>
 <setupdefault><i>(blank)</i></setupdefault>
 <body>
 <p>Specifies which processor architecture(s) Setup is allowed to run on. If this directive is not specified or is blank, Setup will be allowed to run on all processor architectures capable of executing its 32-bit code (including ones it doesn't recognize). Otherwise, if a user's processor architecture is not one of those specified in this directive, Setup will display an error message and exit.</p>
 <p>If your application's binaries are all 32-bit and run in user mode, you should not change this directive from its default value (specifically, don't set it to <tt>x86</tt>), because normally such binaries will run without issue on the x64 and Itanium editions of Windows via the WOW64 emulator.</p>
 <p>If you install any 32-bit device drivers, you should set this directive to <tt>x86</tt>, as 32-bit device drivers cannot function on 64-bit Windows.</p>
 <p>If your application's binaries are built for the x64 or Itanium architectures, you should set this directive to either <tt>x64</tt> or <tt>ia64</tt> respectively.</p>
+<p><i>Note:</i> Windows for ARM64 can only run x86 binaries so Setup will not treat this as a 64-bit Windows.</p>
 <p><b>See also:</b><br/>
 <link topic="setup_architecturesinstallin64bitmode">ArchitecturesInstallIn64BitMode</link></p>
 </body>

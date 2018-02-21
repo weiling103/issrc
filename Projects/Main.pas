@@ -179,7 +179,7 @@ var
 {$ENDIF}
 
   CodeRunner: TScriptRunner;
-
+  
 function CodeRunnerOnDebug(const Position: LongInt;
   var ContinueStepOver: Boolean): Boolean;
 function CodeRunnerOnDebugIntermediate(const Position: LongInt;
@@ -4193,21 +4193,28 @@ const
   PROCESSOR_ARCHITECTURE_INTEL = 0;
   PROCESSOR_ARCHITECTURE_IA64 = 6;
   PROCESSOR_ARCHITECTURE_AMD64 = 9;
+  PROCESSOR_ARCHITECTURE_ARM64 = 12;
+  IMAGE_FILE_MACHINE_I386 = $014c;
+  IMAGE_FILE_MACHINE_ARM64 = $AA64;
 var
   KernelModule: HMODULE;
   GetNativeSystemInfoFunc: procedure(var lpSystemInfo: TSystemInfo); stdcall;
   IsWow64ProcessFunc: function(hProcess: THandle; var Wow64Process: BOOL): BOOL; stdcall;
+  IsWow64Process2Func: function(hProcess: THandle; var pProcessMachine, pNativeMachine: SmallInt): BOOL; stdcall;
+  ProcessMachine, NativeMachine: SmallInt;
+  IsX86OnARM64: Boolean;
   Wow64Process: BOOL;
   SysInfo: TSystemInfo;
 begin
   { The system is considered a "Win64" system if all of the following
     conditions are true:
     1. GetNativeSystemInfo is available.
-    2. IsWow64Process is available, and returns True for the current process.
-    3. Wow64DisableWow64FsRedirection is available.
-    4. Wow64RevertWow64FsRedirection is available.
-    5. GetSystemWow64DirectoryA is available.
-    6. RegDeleteKeyExA is available.
+    2. IsWow64Process2 is not available or doesn't indicate ARM64.
+    3. IsWow64Process is available, and returns True for the current process.
+    4. Wow64DisableWow64FsRedirection is available.
+    5. Wow64RevertWow64FsRedirection is available.
+    6. GetSystemWow64DirectoryA is available.
+    7. RegDeleteKeyExA is available.
     The system does not have to be one of the known 64-bit architectures
     (AMD64, IA64) to be considered a "Win64" system. }
 
@@ -4216,14 +4223,25 @@ begin
   GetNativeSystemInfoFunc := GetProcAddress(KernelModule, 'GetNativeSystemInfo');
   if Assigned(GetNativeSystemInfoFunc) then begin
     GetNativeSystemInfoFunc(SysInfo);
-    IsWow64ProcessFunc := GetProcAddress(KernelModule, 'IsWow64Process');
-    if Assigned(IsWow64ProcessFunc) and
-       IsWow64ProcessFunc(GetCurrentProcess, Wow64Process) and
-       Wow64Process then begin
-      if AreFsRedirectionFunctionsAvailable and
-         (GetProcAddress(KernelModule, 'GetSystemWow64DirectoryA') <> nil) and
-         (GetProcAddress(GetModuleHandle(advapi32), 'RegDeleteKeyExA') <> nil) then
-        IsWin64 := True;
+
+    IsWow64Process2Func := GetProcAddress(KernelModule, 'IsWow64Process2');
+    if Assigned(IsWow64Process2Func) and IsWow64Process2Func(GetCurrentProcess, ProcessMachine, NativeMachine) then begin
+      { Check if we're running under Windows 10 ARM64, which only supports x86 binaries.
+        If so, don't treat this system as a 64 bit system so we don't install x64 binaries. }
+      IsX86OnARM64 := (ProcessMachine = IMAGE_FILE_MACHINE_I386) and (NativeMachine = IMAGE_FILE_MACHINE_ARM64);
+    end else
+      IsX86OnARM64 := False;
+
+    if not IsX86OnARM64 then begin
+      IsWow64ProcessFunc := GetProcAddress(KernelModule, 'IsWow64Process');
+      if Assigned(IsWow64ProcessFunc) and
+         IsWow64ProcessFunc(GetCurrentProcess, Wow64Process) and
+        Wow64Process then begin
+        if AreFsRedirectionFunctionsAvailable and
+           (GetProcAddress(KernelModule, 'GetSystemWow64DirectoryA') <> nil) and
+          (GetProcAddress(GetModuleHandle(advapi32), 'RegDeleteKeyExA') <> nil) then
+          IsWin64 := True;
+      end;
     end;
   end
   else
@@ -4233,6 +4251,7 @@ begin
     PROCESSOR_ARCHITECTURE_INTEL: ProcessorArchitecture := paX86;
     PROCESSOR_ARCHITECTURE_IA64: ProcessorArchitecture := paIA64;
     PROCESSOR_ARCHITECTURE_AMD64: ProcessorArchitecture := paX64;
+    PROCESSOR_ARCHITECTURE_ARM64: ProcessorArchitecture := paARM64;
   else
     ProcessorArchitecture := paUnknown;
   end;

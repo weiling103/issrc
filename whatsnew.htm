@@ -26,8 +26,10 @@ Portions Copyright &copy; 2000-2016 Martijn Laan. All rights reserved.<br />
 For conditions of distribution and use, see <a href="http://www.jrsoftware.org/files/is/license.txt">LICENSE.TXT</a>.
 </p>
 
-<p><a name="5.5.10"></a><span class="ver">5.5.10 </span><span class="date">(?)</span></p>
+<p><a name="5.5.10-dev"></a><span class="ver">5.5.10 </span><span class="date">(?)</span></p>
 <ul>
+<li>Added support for Windows 10 on ARM64: Windows for ARM64 can only run x86 binaries so Setup will not treat this as a 64-bit Windows and only install x86 binaries even if it has x64 binaries are available.</li>
+<li>Added new [Setup] section directive <tt>ArchitecturesAllowed</tt> value: <tt>arm64</tt>. Can be used to not allow Setup to run on Windows 10 on ARM64.</li>
 <li><i>Fix:</i>In 5.5.9 it was no longer possible to include a drive colon in [Setup] section directive <tt>OutputManifestFile</tt>.</li>
 <li>Minor tweaks.</li>
 </ul>
